@@ -51,7 +51,7 @@ main {
     box-shadow: 0 3px 12px rgba(0,0,0,.05);
 }
 .stat-card p { color: #718096; margin-bottom: 12px; }
-.stat-card h2 { color: #087ed1; font-size: 27px; }
+.stat-card h2 { color: #087ed1; font-size: 27px; overflow-wrap: anywhere; }
 .section { margin-top: 25px; }
 .section h2 { margin-bottom: 18px; }
 .task {
@@ -69,8 +69,64 @@ main {
     color: #805b00;
     margin-top: 15px;
 }
+.stats + .stats { margin-top: 20px; }
+.survey-card, .history-item, .admin-item, .question-editor {
+    border: 1px solid #e2e8f0;
+    padding: 18px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+.survey-card h3, .admin-item h3 { margin-bottom: 7px; }
+.survey-card p, .history-item p, .admin-item p { color: #718096; margin: 7px 0; }
+.survey-card button, .admin-item button, .survey-actions button, .admin-actions button {
+    width: auto;
+    padding: 10px 16px;
+    margin: 10px 8px 0 0;
+}
+.survey-card button:disabled, button:disabled { cursor: not-allowed; opacity: .6; }
+.badge {
+    display: inline-block;
+    margin: 4px 6px 4px 0;
+    padding: 4px 9px;
+    border-radius: 99px;
+    background: #e8f2fb;
+    color: #075da0;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+.badge.pending { background: #fff3cd; color: #805b00; }
+.badge.approved { background: #e2f5e9; color: #176b36; }
+.badge.rejected, .badge.locked { background: #fde8e7; color: #a52e24; }
+.survey-notice { color: #718096; }
+.survey-progress { width: 100%; height: 12px; accent-color: #087ed1; }
+.question-card { padding: 16px 0; border-bottom: 1px solid #e2e8f0; }
+.question-card label { margin: 0 0 10px; }
+.question-card input[type="checkbox"], .question-card input[type="radio"],
+.admin-check input { width: auto; margin: 0 8px 0 0; }
+.question-choice { display: flex; align-items: flex-start; margin: 10px 0; font-weight: normal; }
+.question-card textarea, .admin-form textarea {
+    width: 100%;
+    min-height: 84px;
+    padding: 12px;
+    border: 1px solid #d5dce5;
+    border-radius: 8px;
+    font: inherit;
+}
+.admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.admin-form label { margin: 4px 0; }
+.admin-form input, .admin-form select { width: 100%; padding: 10px; }
+.admin-form .wide { grid-column: 1 / -1; }
+.admin-check { display: flex; align-items: center; }
+.admin-answer { margin: 8px 0; overflow-wrap: anywhere; }
+.danger-button { background: #c0392b; }
+.form-message { margin-top: 12px; color: #087ed1; }
+[hidden] { display: none !important; }
 @media(max-width:500px) {
     header { padding: 18px; }
+    main { padding: 0 14px; }
+    .stat-card, .section { padding: 19px; }
+    .survey-card button, .admin-item button { width: 100%; margin-right: 0; }
 }
 </style>
 </head>
@@ -113,6 +169,50 @@ main {
     </div>
 
     <div class="section">
+        <h2>Survey and Rewards Overview</h2>
+        <div class="stats">
+            <div class="stat-card"><p>Available Surveys</p><h2 id="availableSurveys">—</h2></div>
+            <div class="stat-card"><p>Free Surveys Completed</p><h2 id="freeCompleted">—</h2></div>
+            <div class="stat-card"><p>Paid Surveys Completed</p><h2 id="paidCompleted">—</h2></div>
+            <div class="stat-card"><p>Locked Surveys</p><h2 id="lockedSurveys">—</h2></div>
+            <div class="stat-card"><p>Pending Rewards</p><h2 id="pendingRewards">—</h2></div>
+            <div class="stat-card"><p>Approved Earnings</p><h2 id="approvedEarnings">—</h2></div>
+            <div class="stat-card"><p>Withdrawable Balance</p><h2 id="withdrawableBalance">—</h2></div>
+        </div>
+    </div>
+
+    <div class="section" id="surveysSection">
+        <h2>Surveys</h2>
+        <p class="survey-notice" id="rewardDisclosure"></p>
+        <div id="surveyList" aria-live="polite">Loading surveys...</div>
+        <div id="surveyRunner" hidden>
+            <h3 id="activeSurveyTitle"></h3>
+            <p id="activeSurveyDescription"></p>
+            <p><span id="progressText">0 of 10 answered</span></p>
+            <progress class="survey-progress" id="surveyProgress" max="10" value="0"></progress>
+            <form id="surveyForm">
+                <div id="surveyQuestions"></div>
+                <p class="form-message" id="surveyMessage" role="status" aria-live="polite"></p>
+                <div class="survey-actions">
+                    <button type="button" id="cancelSurveyBtn">Back to surveys</button>
+                    <button type="submit" id="submitSurveyBtn">Submit for Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Survey History</h2>
+        <div id="surveyHistory" aria-live="polite">Loading survey history...</div>
+    </div>
+
+    <div class="section">
+        <h2>Activate Paid Surveys</h2>
+        <p>Paid survey access is $10. Payment processing is disabled until a real payment provider is configured and verified.</p>
+        <button type="button" disabled>Paid Surveys Locked — Payment Not Available</button>
+    </div>
+
+    <div class="section">
         <h2>Available Tasks</h2>
 
         <div class="task">
@@ -144,65 +244,46 @@ main {
         <p id="transactions">Transaction history is unavailable until an earnings and payment service is connected.</p>
     </div>
 
+    <section class="section" id="adminDashboard" hidden>
+        <h2>Administrator Dashboard</h2>
+        <p class="notice">Reward amounts are proposed. Approve submissions only after verifying the response and available sponsor funding. Payouts and paid access activation are disabled.</p>
+        <button type="button" id="seedSurveysBtn">Create the Three Free Surveys</button>
+        <p class="form-message" id="adminMessage" role="status" aria-live="polite"></p>
+
+        <h3>Manage Surveys</h3>
+        <div id="adminSurveyList">Loading surveys...</div>
+
+        <h3 id="surveyEditorHeading">Create Survey</h3>
+        <form id="surveyEditorForm">
+            <input id="adminSurveyId" type="hidden">
+            <div class="admin-form">
+                <label>Survey title<input id="adminSurveyTitle" maxlength="120" required></label>
+                <label>Access<select id="adminSurveyAccess"><option value="paid">Paid — locked by default</option><option value="free">Free</option></select></label>
+                <label class="wide">Description<textarea id="adminSurveyDescription" maxlength="1000"></textarea></label>
+                <label>Proposed reward (USD)<input id="adminReward" type="number" min="0" max="10000" step="0.01" value="20" required></label>
+                <label class="admin-check"><input id="adminAllowRetakes" type="checkbox">Allow another attempt after review</label>
+                <label class="admin-check"><input id="adminSurveyActive" type="checkbox" checked>Survey is active</label>
+            </div>
+            <div id="adminQuestionFields"></div>
+            <button type="submit" id="saveSurveyBtn">Save Survey</button>
+            <button type="button" id="cancelEditBtn" hidden>Cancel Edit</button>
+        </form>
+
+        <h3>Pending Submissions</h3>
+        <div id="adminSubmissions">Loading submissions...</div>
+
+        <h3>Registered Users</h3>
+        <div id="adminUsers">Loading users...</div>
+
+        <h3>Payments and Reward Liability</h3>
+        <p id="adminLiability"></p>
+        <p id="adminPaymentStatus"></p>
+        <div id="adminPayments"></div>
+    </section>
+
 </main>
 
-<script type="module">
-
-import { auth, db, logoutUser, onAuthStateChanged } from "./firebase.js";
-import { doc, getDoc } from
-"https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-
-onAuthStateChanged(auth, async (user) => {
-
-    if (!user) {
-        window.location.href = "login.html";
-        return;
-    }
-
-    try {
-
-        await user.reload();
-
-        const snapshot = await getDoc(doc(db, "users", user.uid));
-
-        if (!snapshot.exists()) {
-            await logoutUser();
-            window.location.href = "login.html";
-            return;
-        }
-
-        const data = snapshot.data();
-
-        document.getElementById("userName").textContent = data.fullName || user.displayName || "User";
-        document.getElementById("accountEmail").textContent = data.email || user.email || "Not available";
-        document.getElementById("phoneNumber").textContent = data.phone || user.phoneNumber || "Not provided";
-        document.getElementById("emailVerification").textContent = user.emailVerified ? "Verified" : "Not verified";
-        document.getElementById("accountStatus").textContent = data.accountStatus || "Registered";
-
-    } catch (error) {
-
-        console.error(error);
-        alert("Unable to load your account. Please try again.");
-
-    }
-
-});
-
-document.getElementById("logoutBtn").addEventListener("click", async () => {
-    const button = document.getElementById("logoutBtn");
-    button.disabled = true;
-
-    try {
-        await logoutUser();
-        window.location.href = "login.html";
-    } catch (error) {
-        console.error(error);
-        alert("Unable to log out. Please try again.");
-        button.disabled = false;
-    }
-});
-
-</script>
+<script type="module" src="./dashboard.js"></script>
 
 </body>
 </html>

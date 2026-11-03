@@ -20,6 +20,8 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
+import { getFunctions } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-functions.js";
+
 // FIREBASE CONFIGURATION
 const firebaseConfig = {
     apiKey: "AIzaSyCoAGWe4zoN4dCyQWtouye_XVJ04yZBLhw",
@@ -36,6 +38,7 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app, "us-central1");
 
 export function normalizeKenyanPhoneNumber(phone) {
     const digits = phone.replace(/[\s()-]/g, "");
