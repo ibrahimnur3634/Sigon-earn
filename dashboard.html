@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | SIGON EARN</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+body {
+    display: block;
+    background: #f1f5f9;
+    padding: 0;
+    color: #172b4d;
+}
+header {
+    background: #07152e;
+    color: white;
+    padding: 20px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+header h2 span { color: #18a5f5; }
+header button {
+    width: auto;
+    margin: 0;
+    padding: 10px 20px;
+    background: #e74c3c;
+}
+main {
+    max-width: 1150px;
+    margin: 35px auto;
+    padding: 0 20px;
+}
+.welcome { margin-bottom: 25px; }
+.welcome h1 { text-align: left; font-size: 27px; }
+.welcome p { color: #718096; }
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(210px,1fr));
+    gap: 20px;
+}
+.stat-card, .section {
+    background: white;
+    padding: 25px;
+    border-radius: 13px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.05);
+}
+.stat-card p { color: #718096; margin-bottom: 12px; }
+.stat-card h2 { color: #087ed1; font-size: 27px; }
+.section { margin-top: 25px; }
+.section h2 { margin-bottom: 18px; }
+.task {
+    border: 1px solid #e2e8f0;
+    padding: 18px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+.task p { color: #718096; margin: 8px 0; }
+.task button { max-width: 150px; margin-top: 8px; }
+.notice {
+    background: #fff8e1;
+    padding: 15px;
+    border-radius: 8px;
+    color: #805b00;
+    margin-top: 15px;
+}
+@media(max-width:500px) {
+    header { padding: 18px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <h2>SIGON <span>EARN</span></h2>
+    <button id="logoutBtn">Logout</button>
+</header>
+
+<main>
+
+    <div class="welcome">
+        <h1>Welcome, <span id="userName">User</span>!</h1>
+        <p>Manage your account and explore earning opportunities.</p>
+    </div>
+
+    <div class="stats">
+
+        <div class="stat-card">
+            <p>Available Balance</p>
+            <h2 id="balance">KSh 0.00</h2>
+        </div>
+
+        <div class="stat-card">
+            <p>Total Earnings</p>
+            <h2 id="earnings">KSh 0.00</h2>
+        </div>
+
+        <div class="stat-card">
+            <p>Completed Tasks</p>
+            <h2 id="completedTasks">0</h2>
+        </div>
+
+        <div class="stat-card">
+            <p>Account Status</p>
+            <h2 id="accountStatus">Loading...</h2>
+        </div>
+
+    </div>
+
+    <div class="section">
+        <h2>Available Tasks</h2>
+
+        <div class="task">
+            <h3>Data Entry</h3>
+            <p>Help organize and enter information.</p>
+            <strong>Coming Soon</strong>
+        </div>
+
+        <div class="task">
+            <h3>Online Surveys</h3>
+            <p>Participate in surveys and share your opinions.</p>
+            <strong>Coming Soon</strong>
+        </div>
+
+        <div class="task">
+            <h3>AI Data Tasks</h3>
+            <p>Help improve artificial intelligence systems.</p>
+            <strong>Coming Soon</strong>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Withdrawals</h2>
+        <p>Your withdrawal options will appear here.</p>
+        <div class="notice">
+            Withdrawal services are not yet activated.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Recent Transactions</h2>
+        <p id="transactions">No transactions yet.</p>
+    </div>
+
+</main>
+
+<script type="module">
+
+import { auth, db, logoutUser, onAuthStateChanged } from "./firebase.js";
+import { doc, getDoc } from
+"https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+onAuthStateChanged(auth, async (user) => {
+
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+
+        await user.reload();
+
+        if (!user.emailVerified || !user.phoneNumber) {
+            await logoutUser();
+            window.location.href = "login.html";
+            return;
+        }
+
+        const snapshot = await getDoc(doc(db, "users", user.uid));
+
+        if (!snapshot.exists()) {
+            await logoutUser();
+            window.location.href = "login.html";
+            return;
+        }
+
+        const data = snapshot.data();
+
+        if (!data.phoneVerified || data.accountStatus !== "active") {
+            await logoutUser();
+            window.location.href = "login.html";
+            return;
+        }
+
+        document.getElementById("userName").textContent = data.fullName;
+        document.getElementById("accountStatus").textContent = "Verified";
+
+    } catch (error) {
+
+        console.error(error);
+        alert("Unable to load your account. Please try again.");
+
+    }
+
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await logoutUser();
+    window.location.href = "login.html";
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | SIGON EARN</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+
+        <h1>SIGON <span>EARN</span></h1>
+        <p class="subtitle">Welcome back! Login to your account.</p>
+
+        <form id="loginForm">
+
+            <label>Email Address</label>
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter your email"
+                required
+            >
+
+            <label>Password</label>
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                required
+            >
+
+            <button type="submit" id="loginBtn">
+                Login to Account
+            </button>
+
+        </form>
+
+        <p id="message"></p>
+
+        <p class="login-link">
+            <a href="forgot-password.html">Forgot Password?</a>
+        </p>
+
+        <p class="login-link">
+            Don't have an account?
+            <a href="register.html">Create Account</a>
+        </p>
+
+    </div>
+</div>
+
+<script type="module">
+
+import { loginUser } from "./firebase.js";
+
+const form = document.getElementById("loginForm");
+const message = document.getElementById("message");
+const button = document.getElementById("loginBtn");
+
+form.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+
+        button.disabled = true;
+        button.textContent = "Logging in...";
+        message.textContent = "Checking your account...";
+
+        await loginUser(email, password);
+
+        message.textContent = "Login successful!";
+
+        window.location.href = "dashboard.html";
+
+    } catch (error) {
+
+        message.textContent = error.message;
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Login to Account";
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
