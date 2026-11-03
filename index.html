@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sigon Earn - Complete surveys, perform tasks and earn rewards.">
+    <meta name="description" content="Create and verify your Sigon Earn account. Earning services will be listed when providers are connected.">
     <title>Sigon Earn | Earn. Refer. Grow.</title>
 
     <style>
@@ -59,6 +59,12 @@
             gap: 10px;
         }
 
+        .auth-buttons a {
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+        }
+
         button {
             border: none;
             cursor: pointer;
@@ -101,11 +107,15 @@
             margin: 0 auto 30px;
         }
 
-        .hero button {
+        .get-started {
+            display: inline-block;
             background: #12afea;
             color: white;
             font-size: 16px;
             padding: 15px 35px;
+            border-radius: 7px;
+            font-weight: bold;
+            text-decoration: none;
         }
 
         .section {
@@ -234,13 +244,13 @@
         </nav>
 
         <div class="auth-buttons">
-            <button class="login" onclick="showMessage('Login system coming soon!')">
+            <a class="login" href="login.html">
                 Login
-            </button>
+            </a>
 
-            <button class="register" onclick="showMessage('Registration system coming soon!')">
+            <a class="register" href="register.html">
                 Register
-            </button>
+            </a>
         </div>
     </header>
 
@@ -249,14 +259,13 @@
         <h1>Welcome to <span>Sigon Earn</span></h1>
 
         <p>
-            Discover online opportunities, complete eligible surveys,
-            perform tasks and earn rewards.
-            Invite friends and grow together.
+            Create and verify your account. Earning opportunities will be available
+            when task and payment services are connected.
         </p>
 
-        <button onclick="showMessage('Account registration will be available soon!')">
+        <a class="get-started" href="register.html">
             Get Started
-        </button>
+        </a>
     </section>
 
     <!-- HOW IT WORKS -->
@@ -264,7 +273,7 @@
         <h2>How Sigon Earn Works</h2>
 
         <p class="subtitle">
-            Start your journey in three simple steps.
+            Account setup is available; earning activities depend on connected services.
         </p>
 
         <div class="cards">
@@ -278,13 +287,13 @@
             <div class="card">
                 <div class="emoji">📋</div>
                 <h3>Complete Activities</h3>
-                <p>Participate in available surveys and approved online tasks.</p>
+                <p>Task and survey providers are not connected yet, so no activities are currently available.</p>
             </div>
 
             <div class="card">
                 <div class="emoji">💰</div>
                 <h3>Earn Rewards</h3>
-                <p>Receive rewards after your completed activities are verified.</p>
+                <p>Rewards can only be issued after activity and payment services are configured.</p>
             </div>
 
         </div>
@@ -295,7 +304,7 @@
         <h2>Ways to Earn</h2>
 
         <p class="subtitle">
-            Explore opportunities available on the platform.
+            Current task and provider availability.
         </p>
 
         <div class="cards">
@@ -303,19 +312,19 @@
             <div class="card">
                 <div class="emoji">📝</div>
                 <h3>Paid Surveys</h3>
-                <p>Access surveys from approved third-party research providers.</p>
+                <p>No survey provider is currently connected to this account.</p>
             </div>
 
             <div class="card">
                 <div class="emoji">💻</div>
                 <h3>Online Tasks</h3>
-                <p>Complete eligible data-entry and other approved assignments.</p>
+                <p>No active assignments have been published for members.</p>
             </div>
 
             <div class="card">
                 <div class="emoji">🎯</div>
                 <h3>Special Tasks</h3>
-                <p>Explore additional opportunities activated by the platform administrator.</p>
+                <p>Special tasks will be listed here when they are configured by the administrator.</p>
             </div>
 
         </div>
@@ -326,17 +335,11 @@
         <h2>Refer Friends & Earn</h2>
 
         <p class="subtitle">
-            Invite friends to join Sigon Earn and receive rewards
-            when they meet the qualifying requirements.
+            Referral rewards are not currently available on this platform.
         </p>
 
-        <div class="reward">$5</div>
-
-        <h3>Proposed reward per qualifying referral</h3>
-
         <p style="margin-top: 12px; color: #68778c;">
-            Referral rewards are subject to verification and the
-            platform's published eligibility rules.
+            The referral program is not active. No referral rewards are currently being issued.
         </p>
 
     </section>
@@ -345,13 +348,8 @@
     <section class="section withdrawal">
         <h2>Withdraw Your Rewards</h2>
 
-        <p class="reward" style="color: #22b8f0;">$100</p>
-
-        <p>Proposed minimum withdrawal threshold.</p>
-
         <p style="margin-top: 12px;">
-            M-Pesa withdrawals will be available after payment
-            integration and verification.
+            Withdrawals are unavailable until a payment provider and verified payout workflow are configured.
         </p>
     </section>
 
@@ -367,12 +365,6 @@
 
         <p>Rewards are subject to verification, provider availability and platform terms.</p>
     </footer>
-
-    <script>
-        function showMessage(message) {
-            alert(message);
-        }
-    </script>
 
 </body>
 </html>

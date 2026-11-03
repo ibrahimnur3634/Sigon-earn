@@ -5,14 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | SIGON EARN</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styl.css">
 </head>
 <body>
 
 <div class="auth-container">
     <div class="auth-card">
 
-        <h1>SIGON <span>EARN</span></h1>
+        <h1><a href="index.html">SIGON <span>EARN</span></a></h1>
         <p class="subtitle">Welcome back! Login to your account.</p>
 
         <form id="loginForm">
@@ -39,7 +39,7 @@
 
         </form>
 
-        <p id="message"></p>
+        <p id="message" role="status" aria-live="polite"></p>
 
         <p class="login-link">
             <a href="forgot-password.html">Forgot Password?</a>
@@ -61,6 +61,17 @@ const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
 const button = document.getElementById("loginBtn");
 
+function getLoginErrorMessage(error) {
+    const messages = {
+        "auth/invalid-credential": "The email or password is incorrect.",
+        "auth/invalid-email": "Enter a valid email address.",
+        "auth/user-disabled": "This account has been disabled. Contact support.",
+        "auth/too-many-requests": "Too many attempts. Please wait and try again."
+    };
+
+    return messages[error.code] || error.message || "Unable to log in. Please try again.";
+}
+
 form.addEventListener("submit", async (e) => {
 
     e.preventDefault();
@@ -81,8 +92,7 @@ form.addEventListener("submit", async (e) => {
         window.location.href = "dashboard.html";
 
     } catch (error) {
-
-        message.textContent = error.message;
+        message.textContent = getLoginErrorMessage(error);
 
     } finally {
 
