@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownsUser(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function validPhone(phone) {
+      return phone is string && phone.matches('^\\+254[17][0-9]{8}$');
+    }
+
+    match /users/{userId} {
+      allow get: if ownsUser(userId);
+      allow list: if false;
+
+      allow create: if ownsUser(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'fullName',
+          'email',
+          'phone',
+          'phoneVerified',
+          'emailVerified',
+          'accountStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'uid',
+          'fullName',
+          'email',
+          'phone',
+          'phoneVerified',
+          'emailVerified',
+          'accountStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 2
+        && request.resource.data.fullName.size() <= 100
+        && request.resource.data.email == request.auth.token.email
+        && validPhone(request.resource.data.phone)
+        && request.resource.data.phoneVerified == false
+        && request.resource.data.emailVerified == request.auth.token.email_verified
+        && request.resource.data.accountStatus == 'registered'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if ownsUser(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fullName', 'phone', 'updatedAt'])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 2
+        && request.resource.data.fullName.size() <= 100
+        && validPhone(request.resource.data.phone)
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}

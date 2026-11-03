@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 
 import {
@@ -6,10 +5,10 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    sendEmailVerification,
+    deleteUser,
     reload,
-    RecaptchaVerifier,
-    linkWithPhoneNumber,
+    browserLocalPersistence,
+    setPersistence,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
@@ -18,7 +17,6 @@ import {
     doc,
     setDoc,
     getDoc,
-    updateDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
@@ -39,127 +37,105 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-let recaptchaVerifier = null;
+export function normalizeKenyanPhoneNumber(phone) {
+    const digits = phone.replace(/[\s()-]/g, "");
+    let normalized = digits;
 
-// CREATE RECAPTCHA
-function getRecaptcha() {
-    if (!recaptchaVerifier) {
-        recaptchaVerifier = new RecaptchaVerifier(
-            auth,
-            "recaptcha-container",
-            {
-                size: "normal"
-            }
-        );
+    if (/^0[17]\d{8}$/.test(digits)) {
+        normalized = `+254${digits.slice(1)}`;
+    } else if (/^254[17]\d{8}$/.test(digits)) {
+        normalized = `+${digits}`;
     }
 
-    return recaptchaVerifier;
+    if (!/^\+254[17]\d{8}$/.test(normalized)) {
+        throw new Error("Enter a valid Kenyan mobile number, such as +254712345678.");
+    }
+
+    return normalized;
 }
 
-// REGISTER USER AND SEND VERIFICATION EMAIL + PHONE OTP
 export async function registerUser(fullName, email, phone, password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = normalizeKenyanPhoneNumber(phone);
 
-    const result = await createUserWithEmailAndPassword(
+    await setPersistence(auth, browserLocalPersistence);
+
+    const { user } = await createUserWithEmailAndPassword(
         auth,
-        email,
+        normalizedEmail,
         password
     );
 
     try {
-        await sendEmailVerification(result.user);
-
-        const verifier = getRecaptcha();
-
-        const confirmation = await linkWithPhoneNumber(
-            result.user,
-            phone,
-            verifier
-        );
-
-        return {
-            user: result.user,
-            confirmation
-        };
-
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            fullName: fullName.trim(),
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            phoneVerified: false,
+            emailVerified: user.emailVerified,
+            accountStatus: "registered",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        }, { merge: true });
     } catch (error) {
-        if (recaptchaVerifier) {
-            await recaptchaVerifier.clear();
-            recaptchaVerifier = null;
+        try {
+            await deleteUser(user);
+        } catch (cleanupError) {
+            await signOut(auth);
+            throw new Error(
+                "Your account was created, but its profile could not be saved or automatically removed. Please contact support.",
+                { cause: cleanupError }
+            );
         }
 
-        throw error;
-    }
-}
-
-// VERIFY PHONE OTP AND SAVE USER PROFILE
-export async function verifyRegistrationOTP(
-    confirmation,
-    code,
-    fullName,
-    email,
-    phone
-) {
-
-    const result = await confirmation.confirm(code);
-
-    const user = result.user;
-
-    await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        fullName: fullName,
-        email: email,
-        phone: phone,
-        phoneVerified: true,
-        emailVerified: user.emailVerified,
-        accountStatus: "pending_email_verification",
-        createdAt: serverTimestamp()
-    });
-
-    if (recaptchaVerifier) {
-        await recaptchaVerifier.clear();
-        recaptchaVerifier = null;
+        throw new Error(
+            "Your profile could not be saved, so registration was cancelled. Please try again.",
+            { cause: error }
+        );
     }
 
     return user;
 }
 
-// LOGIN USER
 export async function loginUser(email, password) {
+    await setPersistence(auth, browserLocalPersistence);
 
-    const result = await signInWithEmailAndPassword(
+    const { user } = await signInWithEmailAndPassword(
         auth,
-        email,
+        email.trim().toLowerCase(),
         password
     );
 
-    await reload(result.user);
-    await result.user.getIdToken(true);
-
-    const profileRef = doc(db, "users", result.user.uid);
-    const profile = await getDoc(profileRef);
-
-    if (!profile.exists() || !result.user.phoneNumber) {
+    try {
+        await reload(user);
+        await user.getIdToken(true);
+    } catch (error) {
         await signOut(auth);
-        throw new Error("Your phone verification or account profile is missing.");
+        throw error;
     }
 
-    if (!result.user.emailVerified) {
+    let profile;
+    try {
+        profile = await getDoc(doc(db, "users", user.uid));
+    } catch (error) {
         await signOut(auth);
-        throw new Error("Please verify your email before logging in.");
+        throw new Error(
+            "Unable to load your account profile. Check Firestore access and try again.",
+            { cause: error }
+        );
     }
 
-    await updateDoc(profileRef, {
-        emailVerified: true,
-        accountStatus: "active"
-    });
+    if (!profile.exists()) {
+        await signOut(auth);
+        throw new Error("Your account profile is missing. Please contact support.");
+    }
 
-    return result.user;
+    return user;
 }
 
-// LOGOUT
 export async function logoutUser() {
     await signOut(auth);
 }
 
-// AUTHENTICATION LISTENER
 export { onAuthStateChanged };

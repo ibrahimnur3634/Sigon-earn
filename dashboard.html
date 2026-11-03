@@ -96,13 +96,13 @@ main {
         </div>
 
         <div class="stat-card">
-            <p>Email Verification</p>
-            <h2 id="emailVerification">Loading...</h2>
+            <p>Phone Number</p>
+            <h2 id="phoneNumber">Loading...</h2>
         </div>
 
         <div class="stat-card">
-            <p>Phone Verification</p>
-            <h2 id="phoneVerification">Loading...</h2>
+            <p>Email Verification</p>
+            <h2 id="emailVerification">Loading...</h2>
         </div>
 
         <div class="stat-card">
@@ -163,12 +163,6 @@ onAuthStateChanged(auth, async (user) => {
 
         await user.reload();
 
-        if (!user.emailVerified || !user.phoneNumber) {
-            await logoutUser();
-            window.location.href = "login.html";
-            return;
-        }
-
         const snapshot = await getDoc(doc(db, "users", user.uid));
 
         if (!snapshot.exists()) {
@@ -179,17 +173,11 @@ onAuthStateChanged(auth, async (user) => {
 
         const data = snapshot.data();
 
-        if (!data.phoneVerified || data.accountStatus !== "active") {
-            await logoutUser();
-            window.location.href = "login.html";
-            return;
-        }
-
         document.getElementById("userName").textContent = data.fullName || user.displayName || "User";
         document.getElementById("accountEmail").textContent = data.email || user.email || "Not available";
+        document.getElementById("phoneNumber").textContent = data.phone || user.phoneNumber || "Not provided";
         document.getElementById("emailVerification").textContent = user.emailVerified ? "Verified" : "Not verified";
-        document.getElementById("phoneVerification").textContent = data.phoneVerified ? "Verified" : "Not verified";
-        document.getElementById("accountStatus").textContent = "Verified";
+        document.getElementById("accountStatus").textContent = data.accountStatus || "Registered";
 
     } catch (error) {
 

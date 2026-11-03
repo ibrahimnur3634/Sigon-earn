@@ -22,6 +22,7 @@
                 type="email"
                 id="email"
                 placeholder="Enter your email"
+                autocomplete="email"
                 required
             >
 
@@ -30,6 +31,7 @@
                 type="password"
                 id="password"
                 placeholder="Enter your password"
+                autocomplete="current-password"
                 required
             >
 
@@ -55,22 +57,33 @@
 
 <script type="module">
 
-import { loginUser } from "./firebase.js";
+import { auth, loginUser, onAuthStateChanged } from "./firebase.js";
 
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
 const button = document.getElementById("loginBtn");
+let loginInProgress = false;
 
 function getLoginErrorMessage(error) {
     const messages = {
         "auth/invalid-credential": "The email or password is incorrect.",
+        "auth/wrong-password": "The email or password is incorrect.",
+        "auth/user-not-found": "The email or password is incorrect.",
         "auth/invalid-email": "Enter a valid email address.",
         "auth/user-disabled": "This account has been disabled. Contact support.",
-        "auth/too-many-requests": "Too many attempts. Please wait and try again."
+        "auth/operation-not-allowed": "Email and password sign-in is disabled in Firebase Authentication settings.",
+        "auth/too-many-requests": "Too many attempts. Please wait and try again.",
+        "auth/network-request-failed": "Network error. Check your connection and try again."
     };
 
     return messages[error.code] || error.message || "Unable to log in. Please try again.";
 }
+
+onAuthStateChanged(auth, (user) => {
+    if (user && !loginInProgress) {
+        window.location.replace("dashboard.html");
+    }
+});
 
 form.addEventListener("submit", async (e) => {
 
@@ -79,6 +92,7 @@ form.addEventListener("submit", async (e) => {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
 
+    loginInProgress = true;
     try {
 
         button.disabled = true;
@@ -96,6 +110,7 @@ form.addEventListener("submit", async (e) => {
 
     } finally {
 
+        loginInProgress = false;
         button.disabled = false;
         button.textContent = "Login to Account";
 

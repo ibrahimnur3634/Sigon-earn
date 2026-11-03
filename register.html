@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,32 +14,23 @@
         <p class="subtitle">Create your account and start earning.</p>
 
         <form id="registerForm">
-            <label>Full Name</label>
-            <input type="text" id="fullName" placeholder="Enter your full name" required>
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" placeholder="Enter your full name" autocomplete="name" maxlength="100" required>
 
-            <label>Email Address</label>
-            <input type="email" id="email" placeholder="Enter your email" required>
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="Enter your email" autocomplete="email" required>
 
-            <label>Phone Number</label>
-            <input type="tel" id="phone" placeholder="+2547XXXXXXXX" required>
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" placeholder="+2547XXXXXXXX" autocomplete="tel" inputmode="tel" required>
 
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Create password" minlength="6" required>
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Create a strong password" autocomplete="new-password" minlength="8" required>
 
-            <label>Confirm Password</label>
-            <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
 
             <button type="submit" id="registerBtn">Create Account</button>
         </form>
-
-        <div id="recaptcha-container"></div>
-
-        <div id="otpSection" hidden>
-            <h3>Verify Your Phone</h3>
-            <p>Enter the six-digit SMS verification code.</p>
-            <input type="text" id="otp" maxlength="6" placeholder="Enter OTP">
-            <button id="verifyBtn" type="button">Verify Phone</button>
-        </div>
 
         <p id="message" role="status" aria-live="polite"></p>
 
@@ -52,40 +42,69 @@
 </div>
 
 <script type="module">
-import { registerUser, verifyRegistrationOTP } from "./firebase.js";
+import {
+    auth,
+    registerUser,
+    normalizeKenyanPhoneNumber,
+    onAuthStateChanged
+} from "./firebase.js";
 
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
-
-let confirmation = null;
-let registrationData = null;
 const registerButton = document.getElementById("registerBtn");
-const verifyButton = document.getElementById("verifyBtn");
+let registrationInProgress = false;
 
 function getRegistrationErrorMessage(error) {
     const messages = {
         "auth/email-already-in-use": "An account already exists for this email. Please log in instead.",
         "auth/invalid-email": "Enter a valid email address.",
-        "auth/weak-password": "Choose a password with at least six characters.",
-        "auth/invalid-phone-number": "Enter a valid phone number in +2547XXXXXXXX format.",
-        "auth/too-many-requests": "Too many attempts. Please wait and try again.",
-        "auth/quota-exceeded": "Phone verification is temporarily unavailable. Please try again later."
+        "auth/weak-password": "Choose a stronger password with at least eight characters.",
+        "auth/operation-not-allowed": "Email and password registration is disabled in Firebase Authentication settings.",
+        "auth/too-many-requests": "Too many attempts. Please wait and try again."
     };
 
     return messages[error.code] || error.message || "Unable to complete registration. Please try again.";
 }
 
-form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+onAuthStateChanged(auth, (user) => {
+    if (user && !registrationInProgress) {
+        window.location.replace("dashboard.html");
+    }
+});
+
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
     const fullName = document.getElementById("fullName").value.trim();
     const email = document.getElementById("email").value.trim();
-    const phone = document.getElementById("phone").value.trim();
+    const phoneInput = document.getElementById("phone").value.trim();
     const password = document.getElementById("password").value;
     const confirmPassword = document.getElementById("confirmPassword").value;
 
-    if (fullName.length < 2) {
-        message.textContent = "Enter your full name.";
+    if (fullName.length < 2 || fullName.length > 100) {
+        message.textContent = "Enter a name between 2 and 100 characters.";
+        return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        message.textContent = "Enter a valid email address.";
+        return;
+    }
+
+    let phone;
+    try {
+        phone = normalizeKenyanPhoneNumber(phoneInput);
+    } catch (error) {
+        message.textContent = error.message;
+        return;
+    }
+
+    if (password.length < 8
+        || !/[a-z]/.test(password)
+        || !/[A-Z]/.test(password)
+        || !/\d/.test(password)
+        || !/[^A-Za-z0-9]/.test(password)) {
+        message.textContent = "Use at least 8 characters, including uppercase and lowercase letters, a number, and a symbol.";
         return;
     }
 
@@ -94,62 +113,19 @@ form.addEventListener("submit", async (e) => {
         return;
     }
 
-    if (!/^\+2547\d{8}$/.test(phone)) {
-        message.textContent = "Enter a valid number, e.g. +254712345678";
-        return;
-    }
+    registrationInProgress = true;
+    registerButton.disabled = true;
+    message.textContent = "Creating your account...";
 
     try {
-        registerButton.disabled = true;
-        message.textContent = "Creating your account...";
-
-        registrationData = { fullName, email, phone, password };
-
-        const result = await registerUser(fullName, email, phone, password);
-        confirmation = result.confirmation;
-
-        form.hidden = true;
-        document.getElementById("otpSection").hidden = false;
-
-        message.textContent = "Check your email and phone for verification.";
-
+        await registerUser(fullName, email, phone, password);
+        message.textContent = "Account created. Redirecting to your dashboard...";
+        window.location.replace("dashboard.html");
     } catch (error) {
         message.textContent = getRegistrationErrorMessage(error);
     } finally {
+        registrationInProgress = false;
         registerButton.disabled = false;
-    }
-});
-
-verifyButton.addEventListener("click", async () => {
-    const code = document.getElementById("otp").value.trim();
-
-    if (!confirmation || !/^\d{6}$/.test(code)) {
-        message.textContent = "Enter a valid six-digit OTP.";
-        return;
-    }
-
-    try {
-        verifyButton.disabled = true;
-        message.textContent = "Verifying your phone...";
-
-        await verifyRegistrationOTP(
-            confirmation,
-            code,
-            registrationData.fullName,
-            registrationData.email,
-            registrationData.phone
-        );
-
-        message.textContent = "Phone verified! Check your email and verify it before logging in.";
-
-        setTimeout(() => {
-            window.location.href = "login.html";
-        }, 2500);
-
-    } catch (error) {
-        message.textContent = getRegistrationErrorMessage(error);
-    } finally {
-        verifyButton.disabled = false;
     }
 });
 </script>
