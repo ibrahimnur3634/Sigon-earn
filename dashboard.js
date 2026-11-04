@@ -46,7 +46,7 @@ async function loadAccount(user) {
     const profile = snapshot.data();
     byId("userName").textContent = profile.fullName || user.displayName || "User";
     byId("accountEmail").textContent = profile.email || user.email || "Not available";
-    byId("phoneNumber").textContent = profile.phone || user.phoneNumber || "Not provided";
+    byId("phoneNumber").textContent = profile.phoneNumber || profile.phone || user.phoneNumber || "Not provided";
     byId("emailVerification").textContent = user.emailVerified ? "Verified" : "Not verified";
     byId("accountStatus").textContent = profile.accountStatus || "Registered";
     return true;

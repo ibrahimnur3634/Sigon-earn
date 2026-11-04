@@ -34,44 +34,45 @@ service cloud.firestore {
           'uid',
           'fullName',
           'email',
-          'phone',
-          'phoneVerified',
-          'emailVerified',
-          'accountStatus',
+          'phoneNumber',
           'createdAt',
-          'updatedAt'
+          'accountStatus',
+          'role'
         ])
         && request.resource.data.keys().hasAll([
           'uid',
           'fullName',
           'email',
-          'phone',
-          'phoneVerified',
-          'emailVerified',
-          'accountStatus',
+          'phoneNumber',
           'createdAt',
-          'updatedAt'
+          'accountStatus',
+          'role'
         ])
         && request.resource.data.uid == userId
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() >= 2
         && request.resource.data.fullName.size() <= 100
         && request.resource.data.email == request.auth.token.email
-        && validPhone(request.resource.data.phone)
-        && request.resource.data.phoneVerified == false
-        && request.resource.data.emailVerified == request.auth.token.email_verified
+        && validPhone(request.resource.data.phoneNumber)
         && request.resource.data.accountStatus == 'registered'
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.role == 'user'
+        && request.resource.data.createdAt == request.time;
 
       allow update: if ownsUser(userId)
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['fullName', 'phone', 'updatedAt'])
+          .hasOnly(['fullName', 'phone', 'phoneNumber', 'updatedAt', 'role'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          || (!resource.data.keys().hasAny(['role'])
+            && request.resource.data.role == 'user'))
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() >= 2
         && request.resource.data.fullName.size() <= 100
-        && validPhone(request.resource.data.phone)
-        && request.resource.data.updatedAt == request.time;
+        && (!request.resource.data.keys().hasAny(['phone'])
+          || validPhone(request.resource.data.phone))
+        && (!request.resource.data.keys().hasAny(['phoneNumber'])
+          || validPhone(request.resource.data.phoneNumber))
+        && (!request.resource.data.keys().hasAny(['updatedAt'])
+          || request.resource.data.updatedAt == request.time);
 
       allow delete: if false;
 

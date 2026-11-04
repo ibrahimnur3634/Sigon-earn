@@ -80,7 +80,11 @@ function getLoginErrorMessage(error) {
         "auth/user-disabled": "This account has been disabled. Contact support.",
         "auth/operation-not-allowed": "Email and password sign-in is disabled in Firebase Authentication settings.",
         "auth/too-many-requests": "Too many attempts. Please wait and try again.",
-        "auth/network-request-failed": "Network error. Check your connection and try again."
+        "auth/network-request-failed": "Network error. Check your connection and try again.",
+        "firestore/permission-denied": "Unable to read your profile because Firestore denied access. Ask support to check the deployed Firestore rules.",
+        "firestore/not-found": "The Firestore database is missing. Create the project's Cloud Firestore database in Firebase Console.",
+        "firestore/unavailable": "Network error while loading your profile. Check your connection and try again.",
+        "app/missing-user-profile": "Your account is valid, but its profile needs repair. Use registration with the same email and password to recover it."
     };
 
     return messages[error.code] || error.message || "Unable to log in. Please try again.";

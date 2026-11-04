@@ -5,7 +5,6 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    deleteUser,
     reload,
     browserLocalPersistence,
     setPersistence,
@@ -18,8 +17,8 @@ import {
 import {
     getFirestore,
     doc,
-    setDoc,
     getDoc,
+    runTransaction,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
@@ -48,6 +47,10 @@ export {
     confirmPasswordReset
 };
 
+export function getUserProfile(uid) {
+    return getDoc(doc(db, "users", uid));
+}
+
 export function normalizeKenyanPhoneNumber(phone) {
     const digits = phone.replace(/[\s()-]/g, "");
     let normalized = digits;
@@ -65,47 +68,114 @@ export function normalizeKenyanPhoneNumber(phone) {
     return normalized;
 }
 
+function makeUserProfile(user, fullName, email, phoneNumber) {
+    return {
+        uid: user.uid,
+        fullName: fullName.trim(),
+        email: user.email || email,
+        phoneNumber,
+        createdAt: serverTimestamp(),
+        accountStatus: "registered",
+        role: "user"
+    };
+}
+
+function profileSaveError(error) {
+    const wrappedError = new Error(
+        "Firebase Authentication succeeded, but the Firestore user profile could not be saved.",
+        { cause: error }
+    );
+    wrappedError.code = error.code || "firestore/unknown";
+    wrappedError.registrationStage = "profile";
+    return wrappedError;
+}
+
+async function ensureUserProfile(user, fullName, email, phoneNumber) {
+    const profileRef = doc(db, "users", user.uid);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const existingProfile = await transaction.get(profileRef);
+            if (!existingProfile.exists()) {
+                transaction.set(
+                    profileRef,
+                    makeUserProfile(user, fullName, email, phoneNumber)
+                );
+                return;
+            }
+
+            const profile = existingProfile.data();
+            const missingFields = {};
+            if (!Object.prototype.hasOwnProperty.call(profile, "phoneNumber")) {
+                missingFields.phoneNumber = phoneNumber;
+            }
+            if (!Object.prototype.hasOwnProperty.call(profile, "role")) {
+                missingFields.role = "user";
+            }
+            if (Object.keys(missingFields).length > 0) {
+                transaction.update(profileRef, missingFields);
+            }
+        });
+    } catch (error) {
+        throw profileSaveError(error);
+    }
+}
+
+export async function recoverUserProfile(fullName, email, phone) {
+    const user = auth.currentUser;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!user || user.email?.toLowerCase() !== normalizedEmail) {
+        throw new Error("Sign in with the account email before recovering its profile.");
+    }
+
+    await ensureUserProfile(
+        user,
+        fullName,
+        normalizedEmail,
+        normalizeKenyanPhoneNumber(phone)
+    );
+    return user;
+}
+
 export async function registerUser(fullName, email, phone, password) {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = normalizeKenyanPhoneNumber(phone);
 
     await setPersistence(auth, browserLocalPersistence);
 
-    const { user } = await createUserWithEmailAndPassword(
-        auth,
-        normalizedEmail,
-        password
-    );
-
+    let user;
     try {
-        await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            fullName: fullName.trim(),
-            email: normalizedEmail,
-            phone: normalizedPhone,
-            phoneVerified: false,
-            emailVerified: user.emailVerified,
-            accountStatus: "registered",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+        ({ user } = await createUserWithEmailAndPassword(
+            auth,
+            normalizedEmail,
+            password
+        ));
     } catch (error) {
-        try {
-            await deleteUser(user);
-        } catch (cleanupError) {
-            await signOut(auth);
-            throw new Error(
-                "Your account was created, but its profile could not be saved or automatically removed. Please contact support.",
-                { cause: cleanupError }
-            );
+        if (error.code !== "auth/email-already-in-use") {
+            throw error;
         }
 
-        throw new Error(
-            "Your profile could not be saved, so registration was cancelled. Please try again.",
-            { cause: error }
-        );
+        try {
+            ({ user } = await signInWithEmailAndPassword(
+                auth,
+                normalizedEmail,
+                password
+            ));
+        } catch (signInError) {
+            if (signInError.code === "auth/invalid-credential"
+                || signInError.code === "auth/wrong-password"
+                || signInError.code === "auth/user-not-found") {
+                const duplicateError = new Error(
+                    "An account already exists for this email. Sign in with its password or reset that password.",
+                    { cause: signInError }
+                );
+                duplicateError.code = "auth/email-already-in-use";
+                throw duplicateError;
+            }
+            throw signInError;
+        }
     }
 
+    await ensureUserProfile(user, fullName, normalizedEmail, normalizedPhone);
     return user;
 }
 
@@ -128,18 +198,24 @@ export async function loginUser(email, password) {
 
     let profile;
     try {
-        profile = await getDoc(doc(db, "users", user.uid));
+        profile = await getUserProfile(user.uid);
     } catch (error) {
         await signOut(auth);
-        throw new Error(
+        const profileError = new Error(
             "Unable to load your account profile. Check Firestore access and try again.",
             { cause: error }
         );
+        profileError.code = error.code || "firestore/unknown";
+        throw profileError;
     }
 
     if (!profile.exists()) {
         await signOut(auth);
-        throw new Error("Your account profile is missing. Please contact support.");
+        const missingProfileError = new Error(
+            "Your account is signed in, but its profile is missing. Open registration and submit your details with the same email and password to repair it."
+        );
+        missingProfileError.code = "app/missing-user-profile";
+        throw missingProfileError;
     }
 
     return user;
