@@ -9,7 +9,10 @@ import {
     reload,
     browserLocalPersistence,
     setPersistence,
-    onAuthStateChanged
+    onAuthStateChanged,
+    sendPasswordResetEmail,
+    verifyPasswordResetCode,
+    confirmPasswordReset
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 import {
@@ -39,6 +42,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, "us-central1");
+export {
+    sendPasswordResetEmail,
+    verifyPasswordResetCode,
+    confirmPasswordReset
+};
 
 export function normalizeKenyanPhoneNumber(phone) {
     const digits = phone.replace(/[\s()-]/g, "");

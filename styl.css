@@ -72,6 +72,74 @@ input:focus {
     box-shadow: 0 0 0 3px rgba(7,149,229,0.1);
 }
 
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 50px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 7px;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    padding: 8px;
+    transform: translateY(-50%);
+    background: transparent;
+    color: #536579;
+    border-radius: 6px;
+}
+
+.password-toggle:hover {
+    background: #edf5fb;
+    color: #087ed1;
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid #087ed1;
+    outline-offset: 1px;
+}
+
+.password-toggle svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.password-requirements {
+    margin: 9px 0 0;
+    padding: 0;
+    list-style: none;
+    color: #777;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.password-requirements li::before {
+    content: "○";
+    display: inline-block;
+    width: 20px;
+    color: #8a96a5;
+}
+
+.password-requirements li.is-met {
+    color: #17834e;
+}
+
+.password-requirements li.is-met::before {
+    content: "✓";
+    color: #17834e;
+}
+
 button {
     width: 100%;
     padding: 14px;
@@ -111,6 +179,14 @@ button:hover {
     font-size: 14px;
     color: #087ed1;
     overflow-wrap: anywhere;
+}
+
+#message.message-error {
+    color: #b42318;
+}
+
+#message.message-success {
+    color: #17834e;
 }
 
 .login-link {

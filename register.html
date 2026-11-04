@@ -24,10 +24,27 @@
             <input type="tel" id="phone" placeholder="+2547XXXXXXXX" autocomplete="tel" inputmode="tel" required>
 
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Create a strong password" autocomplete="new-password" minlength="8" required>
+            <div class="password-field">
+                <input type="password" id="password" placeholder="Create a strong password" autocomplete="new-password" minlength="8" required aria-describedby="passwordRequirements">
+                <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+            <ul class="password-requirements" id="passwordRequirements" aria-label="Password requirements">
+                <li data-password-rule="length">At least 8 characters</li>
+                <li data-password-rule="uppercase">At least one uppercase letter</li>
+                <li data-password-rule="lowercase">At least one lowercase letter</li>
+                <li data-password-rule="number">At least one number</li>
+                <li data-password-rule="special">At least one special character</li>
+            </ul>
 
             <label for="confirmPassword">Confirm Password</label>
-            <input type="password" id="confirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
+            <div class="password-field">
+                <input type="password" id="confirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
+                <button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-label="Show password" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
 
             <button type="submit" id="registerBtn">Create Account</button>
         </form>
@@ -48,8 +65,17 @@ import {
     normalizeKenyanPhoneNumber,
     onAuthStateChanged
 } from "./firebase.js";
+import {
+    attachPasswordToggles,
+    isStrongPassword,
+    updatePasswordRequirements
+} from "./password-tools.js";
 
 const form = document.getElementById("registerForm");
+const passwordInput = document.getElementById("password");
+const requirements = document.getElementById("passwordRequirements");
+attachPasswordToggles(form);
+passwordInput.addEventListener("input", () => updatePasswordRequirements(passwordInput, requirements));
 const message = document.getElementById("message");
 const registerButton = document.getElementById("registerBtn");
 let registrationInProgress = false;
@@ -83,11 +109,13 @@ form.addEventListener("submit", async (event) => {
 
     if (fullName.length < 2 || fullName.length > 100) {
         message.textContent = "Enter a name between 2 and 100 characters.";
+        message.className = "message-error";
         return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         message.textContent = "Enter a valid email address.";
+        message.className = "message-error";
         return;
     }
 
@@ -96,26 +124,26 @@ form.addEventListener("submit", async (event) => {
         phone = normalizeKenyanPhoneNumber(phoneInput);
     } catch (error) {
         message.textContent = error.message;
+        message.className = "message-error";
         return;
     }
 
-    if (password.length < 8
-        || !/[a-z]/.test(password)
-        || !/[A-Z]/.test(password)
-        || !/\d/.test(password)
-        || !/[^A-Za-z0-9]/.test(password)) {
+    if (!isStrongPassword(password)) {
         message.textContent = "Use at least 8 characters, including uppercase and lowercase letters, a number, and a symbol.";
+        message.className = "message-error";
         return;
     }
 
     if (password !== confirmPassword) {
         message.textContent = "Passwords do not match.";
+        message.className = "message-error";
         return;
     }
 
     registrationInProgress = true;
     registerButton.disabled = true;
     message.textContent = "Creating your account...";
+    message.className = "";
 
     try {
         await registerUser(fullName, email, phone, password);
@@ -123,6 +151,7 @@ form.addEventListener("submit", async (event) => {
         window.location.replace("dashboard.html");
     } catch (error) {
         message.textContent = getRegistrationErrorMessage(error);
+        message.className = "message-error";
     } finally {
         registrationInProgress = false;
         registerButton.disabled = false;

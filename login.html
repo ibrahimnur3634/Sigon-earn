@@ -17,7 +17,7 @@
 
         <form id="loginForm">
 
-            <label>Email Address</label>
+            <label for="email">Email Address</label>
             <input
                 type="email"
                 id="email"
@@ -26,14 +26,19 @@
                 required
             >
 
-            <label>Password</label>
-            <input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                autocomplete="current-password"
-                required
-            >
+            <label for="password">Password</label>
+            <div class="password-field">
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+                <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
 
             <button type="submit" id="loginBtn">
                 Login to Account
@@ -58,8 +63,10 @@
 <script type="module">
 
 import { auth, loginUser, onAuthStateChanged } from "./firebase.js";
+import { attachPasswordToggles } from "./password-tools.js";
 
 const form = document.getElementById("loginForm");
+attachPasswordToggles(form);
 const message = document.getElementById("message");
 const button = document.getElementById("loginBtn");
 let loginInProgress = false;
@@ -102,11 +109,13 @@ form.addEventListener("submit", async (e) => {
         await loginUser(email, password);
 
         message.textContent = "Login successful!";
+        message.className = "message-success";
 
         window.location.href = "dashboard.html";
 
     } catch (error) {
         message.textContent = getLoginErrorMessage(error);
+        message.className = "message-error";
 
     } finally {
 
