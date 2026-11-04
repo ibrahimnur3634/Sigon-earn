@@ -85,9 +85,14 @@ function profileSaveError(error) {
         "Firebase Authentication succeeded, but the Firestore user profile could not be saved.",
         { cause: error }
     );
-    wrappedError.code = error.code || "firestore/unknown";
+    wrappedError.code = firestoreErrorCode(error);
     wrappedError.registrationStage = "profile";
     return wrappedError;
+}
+
+function firestoreErrorCode(error) {
+    const code = error.code || "unknown";
+    return code.startsWith("firestore/") ? code : `firestore/${code}`;
 }
 
 async function ensureUserProfile(user, fullName, email, phoneNumber) {
@@ -205,7 +210,7 @@ export async function loginUser(email, password) {
             "Unable to load your account profile. Check Firestore access and try again.",
             { cause: error }
         );
-        profileError.code = error.code || "firestore/unknown";
+        profileError.code = firestoreErrorCode(error);
         throw profileError;
     }
 

@@ -487,7 +487,7 @@ exports.adminDashboard = onCall(async (request) => {
             uid: document.id,
             fullName: document.get("fullName") || "",
             email: document.get("email") || "",
-            phone: document.get("phone") || "",
+            phone: document.get("phoneNumber") || document.get("phone") || "",
             accountStatus: document.get("accountStatus") || "registered"
         })),
         pendingSubmissions: pending.docs.map(cleanSubmission),
